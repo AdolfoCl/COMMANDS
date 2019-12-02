@@ -1,0 +1,156 @@
+$TADS                                                                   10000000          
+ BEGIN                                                                  10000100          
+ DEFINE                                                                 10000200          
+   K = 1024 #                                                           10000300          
+  ,CAND(X,Y) = IF(X)THEN(Y)ELSE FALSE #                                 10000400          
+  ;                                                                     10000500          
+ EBCDIC ARRAY                                                           10000600          
+   command                                                              10000700          
+  ,linea                                                                10000800          
+  ,dummy                                                                10000900          
+  ,rsvp[0:1*K]                                                          10001000          
+  ;                                                                     10001100          
+ ARRAY                                                                  10001200          
+   response[0:1*K]                                                      10001300          
+  ;                                                                     10001400          
+ POINTER                                                                10001500          
+   p                                                                    10001600          
+  ;                                                                     10001700          
+ INTEGER                                                                10001800          
+   n                                                                    10001900          
+  ,lRec                                                                 10002000          
+  ,mix                                                                  10002100          
+  ;                                                                     10002200          
+ ARRAY                                                                  10002300          
+   a[0:0]                                                               10002400          
+  ;                                                                     10002500          
+ LABEL                                                                  10002600          
+   exit                                                                 10002700          
+  ;                                                                     10002800          
+ FILE                                                                   10002900          
+   COMANDOS(KIND=DISK                                                   10003000          
+           ,MYUSE=IN                                                    10003100          
+           ,FILETYPE=7                                                  10003200          
+           ,TITLE="ARC/COMANDOS."                                       10003300          
+           )                                                            10003400          
+  ;                                                                     10003500          
+                                                                        10003600          
+ PROCEDURE enviaComando(p, l);                                          10003700          
+   VALUE                p, l;                                           10003800          
+   POINTER              p;                                              10003900          
+   INTEGER                 l;                                           10004000          
+   BEGIN                                                                10004100          
+   INTEGER                                                              10004200          
+     len                                                                10004300          
+    ;                                                                   10004400          
+   POINTER                                                              10004500          
+     q                                                                  10004600          
+    ;                                                                   10004700          
+   LABEL                                                                10004800          
+     exit                                                               10004900          
+    ;                                                                   10005000          
+   REAL                                                                 10005100          
+     r                                                                  10005200          
+    ;                                                                   10005300          
+                                                                        10005400          
+   REPLACE POINTER(a)+5 BY p FOR 1;                                     10005500          
+   WHILE ^READ(COMANDOS, lRec, linea) DO                                10005600          
+     BEGIN                                                              10005700          
+     q := linea;                                                        10005800          
+     len := lRec;                                                       10005900          
+     WHILE len > 0 DO                                                   10006000          
+       BEGIN                                                            10006100          
+       SCAN q:q FOR len:len UNTIL = a[0];                               10006200          
+       IF CAND(len >= l, q = p FOR l) THEN                              10006300          
+         BEGIN                                                          10006400          
+         REPLACE rsvp                                                   10006500          
+              BY mix FOR*DIGITS, linea FOR lRec;                        10006600          
+         DCKEYIN(rsvp,response);                                        10006700          
+         GO exit;                                                       10006800          
+         END;                                                           10006900          
+       q :=*+1;                                                         10007000          
+       len :=*-1;                                                       10007100          
+       END;                                                             10007200          
+                                                                        10007300          
+     END;                                                               10007400          
+ exit:                                                                  10007500          
+   END of enviaComando;                                                 10007600          
+                                                                        10007700          
+ PROCEDURE analizaRSVP(p, n);                                           10007800          
+   VALUE               p, n;                                            10007900          
+   POINTER             p;                                               10008000          
+   INTEGER                n;                                            10008100          
+   BEGIN                                                                10008200          
+   LABEL                                                                10008300          
+     exit                                                               10008400          
+    ;                                                                   10008500          
+   INTEGER                                                              10008600          
+     l                                                                  10008700          
+    ;                                                                   10008800          
+                                                                        10008900          
+   IF p ^= "RSVP:" THEN GO exit;                                        10009000          
+                                                                        10009100          
+   p :=*+5;                                                             10009200          
+   n :=*-5;                                                             10009300          
+   IF n < 0 THEN GO exit;                                               10009400          
+   SCAN p:p FOR n:n WHILE = " ";                                        10009500          
+                                                                        10009600          
+   IF p ^= "NO FILE" THEN GO exit;                                      10009700          
+                                                                        10009800          
+   p :=*+7;                                                             10009900          
+   n :=*-7;                                                             10010000          
+   IF n < 0 THEN GO exit;                                               10010100          
+   SCAN p:p FOR n:n WHILE = " ";                                        10010200          
+                                                                        10010300          
+   SCAN p FOR l:n UNTIL = " ";                                          10010400          
+   l :=n-l;                                                             10010500          
+                                                                        10010600          
+   DISPLAY(STRING(p,l));                                                10010700          
+   enviaComando(p, l);                                                  10010800          
+ exit:                                                                  10010900          
+   END of analizaRSVP;                                                  10011000          
+                                                                        10011100          
+ INTEGER PROCEDURE getAccept(msg);                                      10011200          
+   VALUE                     msg;                                       10011300          
+   STRING                    msg;                                       10011400          
+   BEGIN                                                                10011500          
+   INTEGER                                                              10011600          
+     n                                                                  10011700          
+    ;                                                                   10011800          
+                                                                        10011900          
+   REPLACE dummy BY msg,48"00";                                         10012000          
+   ACCEPT(dummy);                                                       10012100          
+   SCAN dummy FOR n:SIZE(dummy) UNTIL = 48"00";                         10012200          
+   n := SIZE(dummy) - n;                                                10012300          
+   getAccept := INTEGER(dummy, n);                                      10012400          
+   END of getAccept;                                                    10012500          
+                                                                        10012600          
+ mix := MYSELF.TASKVALUE;                                               10012700          
+ IF mix = 0 THEN                                                        10012800          
+   mix := getAccept("Ingrese mix de programa a controlar");             10012900          
+ OPEN(COMANDOS);                                                        10013000          
+ lRec := IF (COMANDOS.UNITS = VALUE(CHARACTERS))                        10013100          
+           THEN COMANDOS.MAXRECSIZE                                     10013200          
+           ELSE COMANDOS.MAXRECSIZE*6;                                  10013300          
+ WHILE TRUE DO                                                          10013400          
+   BEGIN                                                                10013500          
+   REPLACE command BY mix FOR*DIGITS,"Y"48"00";                         10013600          
+   DCKEYIN(command, response);                                          10013700          
+   p := POINTER(response);                                              10013800          
+   SCAN p FOR n:6*K UNTIL = 48"03";                                     10013900          
+   n := 6*K-n;                                                          10014000          
+   IF (n = 0 OR CAND(n >= 14, p = "INVALID NUMBER")) THEN               10014100          
+     GO exit;                                                           10014200          
+   WHILE (n > 0) DO                                                     10014300          
+     BEGIN                                                              10014400          
+     SCAN p:p+1 FOR n:n-1 UNTIL = "R";                                  10014500          
+     IF p = "RSVP:" THEN                                                10014600          
+       BEGIN                                                            10014700          
+       analizaRSVP(p, n);                                               10014800          
+       n := 0;                                                          10014900          
+       END;                                                             10015000          
+     END;                                                               10015100          
+   WAIT((10));                                                          10015200          
+   END;                                                                 10015300          
+exit:                                                                   10015400          
+ END.                                                                   10015500          

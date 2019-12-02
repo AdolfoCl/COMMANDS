@@ -1,0 +1,15 @@
+ BEGIN JOB WFL/ADC/LCSOCB/STATISTICS;                                             10000000
+ TASK T1, T2;                                                                     10000100
+ MYSELF(STATION=MYSELF(SOURCESTATION));                                           10000200
+                                                                                  10000300
+ PROCESS RUN OBJECT/DUMPAUDIT/ESTADISTICAS/LCSOCB[T1];                            10000400
+   AX="9079";                                                                     10000450
+                                                                                  10000500
+ T2(TASKVALUE=T1(MIXNUMBER));                                                     10000600
+ RUN *OBJECT/COMMANDS[T2];                                                        10000700
+   FILE COMANDOS(TITLE=ARC/COMANDOS);                                             10000800
+                                                                                  10000900
+ WAIT(T1);                                                                        10001000
+ IF (T1 ISNT COMPLETEDOK) THEN                                                    10001100
+   ABORT("PROCESO TERMINO MAL");                                                  10001200
+ END JOB;                                                                         10001300
